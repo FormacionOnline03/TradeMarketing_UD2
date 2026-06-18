@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carrusel · Imágenes y Vídeos por Sección</title>
+<style>
+
+/* ─── FUENTES ────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'BaltoBold';
+  src: url('../../InvestigacionUX/fonts/Balto-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* ─── RESET ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ─── TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --thumb-gap:       0px;
+  --thumb-radius:    0px;
+  --fade-duration:   420ms;
+  --kb-duration:     350ms;
+  --tn-color:        rgba(255,255,255,0.35);
+  --tn-hover:        rgba(255,255,255,0.72);
+  --tn-active:       rgba(255,255,255,1);
+  --thumb-active-bd: rgba(255,255,255,0.82);
+}
+
+html, body {
+  width:  1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #080808;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ─── ROOT ───────────────────────────────────────────────────── */
+.root {
+  position: relative;
+  width:  1920px;
+  height: 1080px;
+}
+
+/* ─── TOP NAV (floating sobre el contenido) ──────────────────── */
+.top-nav {
+  position: fixed;
+  top: 24px;
+  left: 0;
+  right: 20%;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* ─── SEGMENTED CONTROL ──────────────────────────────────────── */
+.seg-ctrl {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255,255,255,0.11);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+  padding: 4px;
+  pointer-events: auto;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.30);
+}
+
+/* Píldora azul deslizante */
+.seg-indicator {
+  position: absolute;
+  top: 4px;
+  height: calc(100% - 8px);
+  background: #69E4F9;
+  border-radius: 10px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+  pointer-events: none;
+  transition: left  0.30s cubic-bezier(0.35, 0, 0.25, 1),
+              width 0.30s cubic-bezier(0.35, 0, 0.25, 1);
+}
+
+.seg-btn {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.60);
+  transition: color 0.22s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+.seg-btn.active            { color: #000; font-weight: 500; }
+.seg-btn:not(.active):hover { color: rgba(255,255,255,0.90); }
+
+/* ─── SECTIONS ───────────────────────────────────────────────── */
+.sections-wrap {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+}
+
+.section {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.section.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── GALLERY ────────────────────────────────────────────────── */
+.gallery {
+  display: flex;
+  width:  1920px;
+  height: 1080px;
+}
+
+/* ─── LEFT COLUMN 80% ───────────────────────────────────────── */
+.main-col {
+  position: relative;
+  flex: 0 0 80%;
+  height: 100%;
+  overflow: hidden;
+  background: #111;
+}
+
+/* Gradiente superior → legibilidad del nav */
+.main-col::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.48) 0%, transparent 100%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Gradiente derecho → legibilidad del text navigator */
+.main-col::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to left,
+    rgba(0,0,0,0.55) 0%,
+    rgba(0,0,0,0.18) 22%,
+    transparent      45%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ─── SLIDES ─────────────────────────────────────────────────── */
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--fade-duration) ease;
+  pointer-events: none;
+}
+.slide.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.slide-wrap {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+@keyframes kenBurns {
+  from { transform: scale(1.05); }
+  to   { transform: scale(1.00); }
+}
+.slide.active .slide-wrap.kb {
+  animation: kenBurns var(--kb-duration) ease-out forwards;
+}
+
+.slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.slide-img.mode-fit {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: unset;
+}
+
+.slide video {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  border: none;
+  display: block;
+}
+.slide iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Placeholder slide */
+.slide-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  user-select: none;
+}
+.slide-ph .ph-num {
+  font-size: 96px;
+  font-weight: 100;
+  color: rgba(255,255,255,0.10);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.slide-ph .ph-type {
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+}
+
+/* ─── TEXT NAVIGATOR ─────────────────────────────────────────── */
+.text-nav {
+  position: absolute;
+  right: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.tn-item {
+  cursor: pointer;
+  font-family: 'BaltoBold', 'Helvetica Neue', sans-serif;
+  color: var(--tn-color);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  transition: color 0.28s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+.tn-item:hover  { color: var(--tn-hover);  }
+.tn-item.active { color: var(--tn-active); }
+
+/* ─── SECTION FULL WIDTH (sin thumb-col) ────────────────────── */
+.section--full .thumb-col { display: none; }
+.section--full .main-col  { flex: 0 0 100%; }
+
+/* ─── SIN GRADIENTE DERECHO (secciones sin text-nav) ────────── */
+.main-col--no-overlay::after { display: none; }
+
+/* ─── RIGHT COLUMN 20% ──────────────────────────────────────── */
+.thumb-col {
+  flex: 0 0 20%;
+  height: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  background: #080808;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+.thumb-col::-webkit-scrollbar       { width: 3px; }
+.thumb-col::-webkit-scrollbar-track { background: transparent; }
+.thumb-col::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 99px; }
+
+/* ─── THUMBNAILS ─────────────────────────────────────────────── */
+.thumb {
+  flex: 0 0 270px;
+  width: 100%;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: var(--thumb-radius);
+  border: 2px solid transparent;
+  transition: border-color 0.25s ease, opacity 0.22s ease;
+  position: relative;
+  background: #111;
+}
+.thumb:hover  { opacity: 0.72; }
+.thumb.active { border-color: var(--thumb-active-bd); opacity: 1 !important; }
+
+.thumb img,
+.thumb canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  user-select: none;
+}
+.thumb-ph .tph-num {
+  font-size: 22px;
+  font-weight: 100;
+  color: rgba(255,255,255,0.28);
+  letter-spacing: 0em;
+}
+.thumb-ph .tph-type {
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.18);
+}
+
+/* ─── PLAY OVERLAY (vídeos/links no embebibles) ──────────────── */
+.slide-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.slide.active .slide-play-overlay { opacity: 1; }
+.play-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.13);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255,255,255,0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.22s ease, transform 0.22s ease, border-color 0.22s ease;
+}
+.play-btn:hover {
+  background: rgba(255,255,255,0.26);
+  border-color: rgba(255,255,255,0.7);
+  transform: scale(1.1);
+}
+.play-btn svg { width: 26px; height: 26px; fill: #fff; margin-left: 4px; }
+
+</style>
+</head>
+<body>
+<div class="root">
+
+  <!-- ───────────────  SECTIONS  ─────────────────── -->
+  <div class="sections-wrap">
+
+    <div class="section active" id="section-popup">
+      <div class="gallery">
+        <div class="main-col" id="mainCol-popup">
+          <nav class="text-nav" id="textNav-popup"></nav>
+        </div>
+        <aside class="thumb-col" id="thumbCol-popup"></aside>
+      </div>
+    </div>
+
+    <div class="section section--full" id="section-integracion">
+      <div class="gallery">
+        <div class="main-col" id="mainCol-integracion">
+          <nav class="text-nav" id="textNav-integracion"></nav>
+        </div>
+        <aside class="thumb-col" id="thumbCol-integracion"></aside>
+      </div>
+    </div>
+
+    <div class="section" id="section-hospitalidad">
+      <div class="gallery">
+        <div class="main-col" id="mainCol-hospitalidad">
+          <nav class="text-nav" id="textNav-hospitalidad"></nav>
+        </div>
+        <aside class="thumb-col" id="thumbCol-hospitalidad"></aside>
+      </div>
+    </div>
+
+    <div class="section" id="section-personalizacion">
+      <div class="gallery">
+        <div class="main-col" id="mainCol-personalizacion">
+          <nav class="text-nav" id="textNav-personalizacion"></nav>
+        </div>
+        <aside class="thumb-col" id="thumbCol-personalizacion"></aside>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ───────────────  TOP NAV  ─────────────────── -->
+  <header class="top-nav">
+    <div class="seg-ctrl" id="segCtrl">
+      <div class="seg-indicator" id="segIndicator"></div>
+      <button class="seg-btn active" data-section="popup">Pop-Up o eventos efímeros</button>
+      <button class="seg-btn"        data-section="integracion">Integración sensorial y tecnológica</button>
+      <button class="seg-btn"        data-section="hospitalidad">Hospitalidad e inmersión</button>
+      <button class="seg-btn"        data-section="personalizacion">Co-creación y personalización</button>
+    </div>
+  </header>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  DATA POR SECCIÓN
+//  type: 'image' | 'gif' | 'video' | 'youtube' | 'iframe'
+//  src:  null = placeholder | string = URL/ruta real
+//  link: (opcional) abre en nueva pestaña al hacer clic
+// ═══════════════════════════════════════════════════════════════
+const SECTIONS_DATA = {
+
+  popup: [
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/1.jpg',        label: 'GUCCI ANCORA',  groupStart: true, color: '#0e0e0e' },
+    { type: 'video', src: '../Imagenes/Diapo8/PopUp/GUCCI/2.mp4',        label: 'GUCCI — 02',    color: '#0e0e0e' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/3.jpg',        label: 'GUCCI — 03',    color: '#0e0e0e' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/4.jpg',        label: 'GUCCI — 04',    color: '#0e0e0e' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/5.jpg',        label: 'GUCCI — 05',    color: '#0e0e0e' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/6.jpg',        label: 'GUCCI — 06',    color: '#0e0e0e' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/LouisVuitton/1.jpg', label: 'Louis Vuitton Hotel', groupStart: true, color: '#101008' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/LouisVuitton/2.jpg', label: 'LV — 02',       color: '#101008' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/LouisVuitton/3.jpg', label: 'LV — 03',       color: '#101008' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/LouisVuitton/4.jpg', label: 'LV — 04',       color: '#101008' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/LouisVuitton/5.jpg', label: 'LV — 05',       color: '#101008' },
+    { type: 'image', src: '../Imagenes/Diapo8/PopUp/LouisVuitton/6.jpg', label: 'LV — 06',       color: '#101008' },
+  ],
+
+  integracion: [
+    { type: 'video', src: '../Imagenes/Diapo8/Integración sensorial y tecnológica/Burberry.mov', label: 'Burberry', color: '#0e1a14' },
+  ],
+
+  hospitalidad: [
+    { type: 'video', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/1.mov', label: 'Ralph Lauren', groupStart: true, color: '#0e1020' },
+    { type: 'image', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/2.jpg', label: 'Ralph Lauren — 02', color: '#0e1020' },
+    { type: 'image', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/3.jpg', label: 'Ralph Lauren — 03', color: '#0e1020' },
+    { type: 'image', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/4.jpg', label: 'Ralph Lauren — 04', color: '#0e1020' },
+  ],
+
+  personalizacion: [
+    { type: 'video', src: '../Imagenes/Diapo8/Personalizacion/1.mov', label: 'Nike By You | Vídeo',         color: '#1a100e' },
+    { type: 'video', src: '../Imagenes/Diapo8/Personalizacion/2.mov', label: 'Nike By You | Web inmersiva', color: '#1a100e' },
+  ],
+
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════
+const CONFIG = { imageMode: 'fit' };  // 'fill' | 'fit'
+
+const SECTION_CONFIG = {};
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════
+const pad2    = n => String(n).padStart(2, '0');
+const isImage = t => t === 'image' || t === 'gif';
+
+// ═══════════════════════════════════════════════════════════════
+//  ESTADO  (slide actual por sección)
+// ═══════════════════════════════════════════════════════════════
+const state = { popup: -1, integracion: -1, hospitalidad: -1, personalizacion: -1 };
+let activeSection = 'popup';
+
+// ═══════════════════════════════════════════════════════════════
+//  THUMBNAIL — captura de primer frame (GIF y vídeo)
+// ═══════════════════════════════════════════════════════════════
+function drawCover(ctx, src, cW, cH, sW, sH) {
+  const scale = Math.max(cW / sW, cH / sH);
+  const x = Math.round((cW - sW * scale) / 2);
+  const y = Math.round((cH - sH * scale) / 2);
+  ctx.drawImage(src, x, y, Math.round(sW * scale), Math.round(sH * scale));
+}
+
+function makeCanvas() {
+  const c = document.createElement('canvas');
+  c.width = 400; c.height = 300;
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  return c;
+}
+
+function captureGif(src, container) {
+  const canvas = makeCanvas();
+  const img = new Image();
+  img.onload = () =>
+    drawCover(canvas.getContext('2d'), img, 400, 300, img.naturalWidth, img.naturalHeight);
+  img.src = src;
+  container.appendChild(canvas);
+}
+
+function captureVideo(src, container) {
+  const canvas = makeCanvas();
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto';
+  v.style.cssText = 'position:fixed;top:-9999px;width:1px;height:1px;';
+  v.addEventListener('loadeddata', () => { v.currentTime = 0.001; }, { once: true });
+  v.addEventListener('seeked', () => {
+    drawCover(canvas.getContext('2d'), v, 400, 300, v.videoWidth, v.videoHeight);
+    v.src = ''; v.remove();
+  }, { once: true });
+  v.src = src;
+  document.body.appendChild(v);
+  container.appendChild(canvas);
+}
+
+function buildVideoCanvas(src, wrap) {
+  const video = document.createElement('video');
+  video.src = src;
+  video.loop = true; video.muted = true;
+  video.playsInline = true; video.autoplay = true;
+  wrap.appendChild(video);
+  video.play().catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BUILD GALLERY
+// ═══════════════════════════════════════════════════════════════
+function buildGallery(sectionId, slides) {
+  const mainCol   = document.getElementById(`mainCol-${sectionId}`);
+  const textNav   = document.getElementById(`textNav-${sectionId}`);
+  const thumbCol  = document.getElementById(`thumbCol-${sectionId}`);
+  const hideTextNav = !!(SECTION_CONFIG[sectionId] && SECTION_CONFIG[sectionId].hideTextNav);
+  if (hideTextNav) {
+    textNav.style.display = 'none';
+    mainCol.classList.add('main-col--no-overlay');
+  }
+
+  slides.forEach((data, i) => {
+
+    /* ── Slide principal ── */
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+
+    const wrap = document.createElement('div');
+    wrap.className = isImage(data.type) ? 'slide-wrap kb' : 'slide-wrap';
+
+    if (data.src) {
+      if (isImage(data.type)) {
+        const img = document.createElement('img');
+        img.src = data.src;
+        img.alt = '';
+        img.className = CONFIG.imageMode === 'fit' ? 'slide-img mode-fit' : 'slide-img';
+        wrap.appendChild(img);
+
+      } else if (data.type === 'video') {
+        buildVideoCanvas(data.src, wrap);
+
+      } else {
+        const fr = document.createElement('iframe');
+        fr.dataset.lazysrc = data.src;
+        fr.allowFullscreen = true;
+        if (data.type === 'youtube') {
+          fr.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+          fr.referrerPolicy = 'strict-origin-when-cross-origin';
+        }
+        wrap.appendChild(fr);
+      }
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'slide-ph';
+      ph.style.background = data.color;
+      ph.innerHTML = `<span class="ph-num">${pad2(i + 1)}</span>
+                      <span class="ph-type">${data.type}</span>`;
+      wrap.appendChild(ph);
+    }
+
+    /* ── Click para navegar al siguiente (secciones sin text-nav) ── */
+    if (hideTextNav && isImage(data.type)) {
+      wrap.style.cursor = 'pointer';
+      wrap.addEventListener('click', () => goTo(sectionId, (i + 1) % slides.length));
+    }
+
+    slide.appendChild(wrap);
+
+    if (data.link) {
+      const overlay = document.createElement('div');
+      overlay.className = 'slide-play-overlay';
+      overlay.innerHTML = `<div class="play-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>`;
+      overlay.addEventListener('click', () => window.open(data.link, '_blank'));
+      slide.appendChild(overlay);
+    }
+
+    mainCol.insertBefore(slide, textNav);
+
+    /* ── Text navigator ── */
+    const hasGroups = slides.some(s => s.groupStart);
+    if (!hideTextNav && (!hasGroups || data.groupStart)) {
+      const tn = document.createElement('div');
+      tn.className = 'tn-item';
+      tn.textContent = data.label;
+      tn.addEventListener('click', () => goTo(sectionId, i));
+      textNav.appendChild(tn);
+      data._tnEl = tn;
+    } else if (!hideTextNav) {
+      const prevGroup = slides.slice(0, i).reverse().find(s => s.groupStart);
+      data._tnEl = prevGroup ? prevGroup._tnEl : null;
+    } else {
+      data._tnEl = null;
+    }
+
+    /* ── Thumbnail ── */
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    thumb.addEventListener('click', () => goTo(sectionId, i));
+
+    if (data.thumb) {
+      const img = document.createElement('img');
+      img.src = data.thumb; img.alt = '';
+      thumb.appendChild(img);
+    } else if (data.src && data.type === 'image') {
+      const img = document.createElement('img');
+      img.src = data.src; img.alt = '';
+      thumb.appendChild(img);
+    } else if (data.src && data.type === 'gif') {
+      captureGif(data.src, thumb);
+    } else if (data.src && data.type === 'video') {
+      captureVideo(data.src, thumb);
+    } else {
+      const tph = document.createElement('div');
+      tph.className = 'thumb-ph';
+      tph.style.background = data.color;
+      tph.innerHTML = `<span class="tph-num">${pad2(i + 1)}</span>
+                       <span class="tph-type">${data.type}</span>`;
+      thumb.appendChild(tph);
+    }
+
+    thumbCol.appendChild(thumb);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVEGAR DENTRO DE UNA SECCIÓN
+// ═══════════════════════════════════════════════════════════════
+function goTo(sectionId, index) {
+  if (index === state[sectionId]) return;
+
+  const sEl       = document.getElementById(`section-${sectionId}`);
+  const allSlides = sEl.querySelectorAll('.slide');
+  const allThumbs = sEl.querySelectorAll('.thumb');
+  const slides    = SECTIONS_DATA[sectionId];
+
+  if (state[sectionId] >= 0) {
+    allSlides[state[sectionId]].classList.remove('active');
+    allThumbs[state[sectionId]].classList.remove('active');
+    const prevTn = slides[state[sectionId]]._tnEl;
+    if (prevTn) prevTn.classList.remove('active');
+  }
+
+  state[sectionId] = index;
+  const newSlide = allSlides[index];
+
+  const kb = newSlide.querySelector('.slide-wrap.kb');
+  if (kb) { kb.style.animation = 'none'; void kb.offsetWidth; kb.style.animation = ''; }
+
+  newSlide.querySelectorAll('[data-lazysrc]').forEach(el => {
+    if (!el.getAttribute('src')) el.src = el.dataset.lazysrc;
+  });
+
+  newSlide.classList.add('active');
+  allThumbs[index].classList.add('active');
+  const currTn = slides[index]._tnEl;
+  if (currTn) currTn.classList.add('active');
+  allThumbs[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CAMBIAR SECCIÓN
+// ═══════════════════════════════════════════════════════════════
+function switchSection(sectionId) {
+  if (sectionId === activeSection) return;
+
+  document.getElementById(`section-${activeSection}`).classList.remove('active');
+  document.querySelector(`[data-section="${activeSection}"]`).classList.remove('active');
+
+  activeSection = sectionId;
+
+  document.getElementById(`section-${activeSection}`).classList.add('active');
+  const btn = document.querySelector(`[data-section="${activeSection}"]`);
+  btn.classList.add('active');
+  updateIndicator(btn);
+
+  if (state[activeSection] === -1) goTo(activeSection, 0);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SEGMENTED CONTROL — posicionar píldora
+// ═══════════════════════════════════════════════════════════════
+function updateIndicator(btn) {
+  const ind = document.getElementById('segIndicator');
+  ind.style.left  = btn.offsetLeft + 'px';
+  ind.style.width = btn.offsetWidth + 'px';
+}
+
+document.querySelectorAll('.seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchSection(btn.dataset.section));
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+Object.entries(SECTIONS_DATA).forEach(([id, slides]) => buildGallery(id, slides));
+
+requestAnimationFrame(() => {
+  updateIndicator(document.querySelector('.seg-btn.active'));
+});
+
+goTo('popup', 0);
+</script>
+</body>
+</html>
