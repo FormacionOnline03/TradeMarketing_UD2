@@ -451,7 +451,7 @@ const SECTIONS_DATA = {
 
   popup: [
     { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/1.jpg',        label: 'GUCCI ANCORA',  groupStart: true, color: '#0e0e0e' },
-    { type: 'video', src: '../Imagenes/Diapo8/PopUp/GUCCI/2.mp4',        label: 'GUCCI — 02',    color: '#0e0e0e' },
+    { type: 'video', src: '../Imagenes/Diapo8/PopUp-GUCCI.mp4',            label: 'GUCCI — 02',    color: '#0e0e0e' },
     { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/3.jpg',        label: 'GUCCI — 03',    color: '#0e0e0e' },
     { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/4.jpg',        label: 'GUCCI — 04',    color: '#0e0e0e' },
     { type: 'image', src: '../Imagenes/Diapo8/PopUp/GUCCI/5.jpg',        label: 'GUCCI — 05',    color: '#0e0e0e' },
@@ -465,19 +465,19 @@ const SECTIONS_DATA = {
   ],
 
   integracion: [
-    { type: 'video', src: '../Imagenes/Diapo8/Integración sensorial y tecnológica/Burberry.mov', label: 'Burberry', color: '#0e1a14' },
+    { type: 'video', src: '../Imagenes/Diapo8/IntegracionSensorial_Burberry.mp4', label: 'Burberry | Realidad aumentada', color: '#0e1a14' },
   ],
 
   hospitalidad: [
-    { type: 'video', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/1.mov', label: 'Ralph Lauren', groupStart: true, color: '#0e1020' },
+    { type: 'video', src: '../Imagenes/Diapo8/Hospitalidad-RalphLauren.mp4', label: 'Ralph Lauren Café', groupStart: true, color: '#0e1020' },
     { type: 'image', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/2.jpg', label: 'Ralph Lauren — 02', color: '#0e1020' },
     { type: 'image', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/3.jpg', label: 'Ralph Lauren — 03', color: '#0e1020' },
     { type: 'image', src: '../Imagenes/Diapo8/Hospitalidad/RalphLauren/4.jpg', label: 'Ralph Lauren — 04', color: '#0e1020' },
   ],
 
   personalizacion: [
-    { type: 'video', src: '../Imagenes/Diapo8/Personalizacion/1.mov', label: 'Nike By You | Vídeo',         color: '#1a100e' },
-    { type: 'video', src: '../Imagenes/Diapo8/Personalizacion/2.mov', label: 'Nike By You | Web inmersiva', color: '#1a100e' },
+    { type: 'video', src: '../Imagenes/Diapo8/Personalizacion-Nike-video.mp4', label: 'Nike By You | Vídeo',         color: '#1a100e' },
+    { type: 'video', src: '../Imagenes/Diapo8/Personalizacion-Nike-web.mp4',  label: 'Nike By You | Web inmersiva', color: '#1a100e' },
   ],
 
 };
@@ -744,6 +744,21 @@ requestAnimationFrame(() => {
 });
 
 goTo('popup', 0);
+
+// ═══════════════════════════════════════════════════════════════
+//  RUEDA DEL RATÓN — navegar entre slides
+// ═══════════════════════════════════════════════════════════════
+let _wheelLocked = false;
+document.addEventListener('wheel', function(e) {
+  if (_wheelLocked) return;
+  _wheelLocked = true;
+  setTimeout(() => { _wheelLocked = false; }, 520);
+
+  const slides = SECTIONS_DATA[activeSection];
+  const cur    = state[activeSection];
+  if (e.deltaY > 0 && cur < slides.length - 1) goTo(activeSection, cur + 1);
+  if (e.deltaY < 0 && cur > 0)                 goTo(activeSection, cur - 1);
+}, { passive: true });
 </script>
 </body>
 </html>
